@@ -4,10 +4,12 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/ros2bag-repairer.svg)](https://pypi.org/project/ros2bag-repairer/)
 [![License](https://img.shields.io/pypi/l/ros2bag-repairer.svg)](LICENSE)
 
-Repair **incomplete or corrupt rosbag2 (sqlite3 `.db3`) bags** — the kind a
-recorder leaves behind when it's killed mid-run. No ROS 2 installation
-required; it works directly on the `.db3` with the Python standard library and
-the `sqlite3` CLI.
+Repair **incomplete or corrupted rosbag2 (sqlite3 `.db3`) recordings** — the
+kind of logs left behind when a robot crashes, loses power, or is interrupted
+before the recorder can shut down cleanly. Instead of treating those partially
+written bags as lost data, this tool reconstructs and recovers what it can
+directly from the database using only the Python standard library and the
+`sqlite3` CLI, with no ROS 2 installation required.
 
 ## What it fixes
 

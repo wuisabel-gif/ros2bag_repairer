@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ros2bag-repairer — repair a bag in your browser</title>
+<style>
+  :root{ --bg:#0b0f14; --panel:#121821; --line:#1e2733; --text:#e6edf3; --muted:#8b9bb0;
+         --accent:#38bdf8; --good:#34d399; --bad:#f87171; --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--text);
+        font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55 }
+  .wrap{ max-width:860px; margin:0 auto; padding:48px 20px 80px }
+  a{ color:var(--accent) }
+  .eyebrow{ color:var(--accent); font-family:var(--mono); font-size:13px; letter-spacing:.08em; text-transform:uppercase }
+  h1{ font-size:34px; margin:8px 0 6px }
+  .lede{ color:var(--muted); margin:0 0 28px; max-width:60ch }
+  code{ font-family:var(--mono); background:#0e141c; border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-size:.92em }
+  .drop{ border:2px dashed #2b3a4d; border-radius:14px; padding:42px 20px; text-align:center;
+         background:var(--panel); transition:border-color .15s, background .15s; cursor:pointer }
+  .drop.over{ border-color:var(--accent); background:#0f1722 }
+  .drop h2{ margin:6px 0 4px; font-size:18px }
+  .drop p{ color:var(--muted); margin:4px 0 0; font-size:14px }
+  .btn{ display:inline-block; margin-top:16px; background:var(--accent); color:#05202b; font-weight:700;
+        border:0; border-radius:9px; padding:10px 18px; font-size:14px; cursor:pointer; text-decoration:none }
+  .btn[disabled]{ opacity:.5; cursor:not-allowed }
+  .hidden{ display:none }
+  .status{ margin:22px 0 0; font-family:var(--mono); font-size:13px }
+  .ok{ color:var(--good) } .err{ color:var(--bad) } .mut{ color:var(--muted) }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-top:22px }
+  table{ width:100%; border-collapse:collapse; font-size:13px; font-family:var(--mono) }
+  th,td{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line) }
+  th{ color:var(--muted); font-weight:600 }
+  td.num{ text-align:right }
+  .grid{ display:flex; gap:26px; flex-wrap:wrap; margin-bottom:14px }
+  .stat .k{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em }
+  .stat .v{ font-family:var(--mono); font-size:22px }
+  pre{ background:#0e141c; border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto;
+       font-family:var(--mono); font-size:12px; max-height:280px }
+  .foot{ color:var(--muted); font-size:13px; margin-top:34px; border-top:1px solid var(--line); padding-top:18px }
+  .note{ color:var(--muted); font-size:13px; margin-top:14px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">ros2bag-repairer · browser tool</div>
+  <h1>Rebuild a missing <code>metadata.yaml</code>, right here.</h1>
+  <p class="lede">Drop in the <code>.db3</code> from a bag that lost its <code>metadata.yaml</code> (recorder
+  crashed, power cut, Ctrl-C too early). It runs entirely in your browser — the file never leaves your
+  machine — and reconstructs the metadata from the messages in the database, then hands you a
+  <code>metadata.yaml</code> to drop back next to the <code>.db3</code> so <code>ros2 bag play</code> works again.</p>
+
+  <label id="drop" class="drop">
+    <input id="file" type="file" accept=".db3" class="hidden">
+    <h2>Choose or drop a <code>.db3</code> file</h2>
+    <p>Everything runs locally in your browser. Nothing is uploaded.</p>
+    <span class="btn">Select .db3</span>
+  </label>
+
+  <div id="status" class="status mut">Loading the SQLite engine…</div>
+
+  <div id="result" class="card hidden">
+    <div class="grid">
+      <div class="stat"><div class="k">messages</div><div class="v" id="s-msgs">—</div></div>
+      <div class="stat"><div class="k">topics</div><div class="v" id="s-topics">—</div></div>
+      <div class="stat"><div class="k">duration</div><div class="v" id="s-dur">—</div></div>
+    </div>
+    <a id="download" class="btn" download="metadata.yaml">Download metadata.yaml</a>
+    <table id="topics-tbl" style="margin-top:18px"><thead>
+      <tr><th>topic</th><th>type</th><th class="num">messages</th></tr></thead><tbody></tbody></table>
+    <p class="note">Preview of the generated <code>metadata.yaml</code>:</p>
+    <pre id="yaml"></pre>
+  </div>
+
+  <div class="foot">
+    <p><strong>What this does / doesn't do.</strong> This page only rebuilds <code>metadata.yaml</code> from an
+    intact database — the most common crash case. It can't checkpoint a leftover <code>-wal</code> or salvage a
+    <em>corrupt</em> <code>.db3</code>, and it loads the whole file into memory, so multi-GB bags should use the
+    command-line tool instead:</p>
+    <pre>pip install ros2bag-repairer
+ros2bag-repair my_bag/                 # rebuild metadata in place
+ros2bag-repair my_bag/ --force-recover # salvage a corrupt .db3</pre>
+    <p><a href="index.html">← back to the project page</a> · <a href="https://pypi.org/project/ros2bag-repairer/">PyPI</a>
+    · <a href="https://github.com/wuisabel-gif/ros2bag_repairer">GitHub</a></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+let SQL = null;
+
+function setStatus(msg, cls){ statusEl.className = "status " + (cls || "mut"); statusEl.textContent = msg; }
+
+initSqlJs({ locateFile: f => "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/" + f })
+  .then(sql => { SQL = sql; setStatus("Ready — choose a .db3 to repair.", "ok"); })
+  .catch(() => setStatus("Could not load the SQLite engine (offline?).", "err"));
+
+// --- drag & drop wiring ---
+const drop = $("drop"), fileInput = $("file");
+["dragenter","dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => { const f = ev.dataTransfer.files[0]; if (f) handleFile(f); });
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function yamlEscape(s){ return String(s).replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n"); }
+
+function buildYaml(filename, topics, totalCount, startNs, endNs){
+  const dur = (startNs !== null && endNs !== null) ? (endNs - startNs) : 0n;
+  const start = startNs !== null ? startNs : 0n;
+  let y = "rosbag2_bagfile_information:\n";
+  y += "  version: 5\n";
+  y += "  storage_identifier: sqlite3\n";
+  y += "  duration:\n    nanoseconds: " + dur.toString() + "\n";
+  y += "  starting_time:\n    nanoseconds_since_epoch: " + start.toString() + "\n";
+  y += "  message_count: " + totalCount + "\n";
+  y += "  topics_with_message_count:\n";
+  for (const t of topics){
+    y += "    - topic_metadata:\n";
+    y += "        name: " + t.name + "\n";
+    y += "        type: " + t.type + "\n";
+    y += "        serialization_format: " + (t.fmt || "cdr") + "\n";
+    y += '        offered_qos_profiles: "' + yamlEscape(t.qos || "") + '"\n';
+    y += "      message_count: " + t.count + "\n";
+  }
+  y += '  compression_format: ""\n  compression_mode: ""\n';
+  y += "  relative_file_paths:\n    - " + filename + "\n";
+  y += "  files:\n    - path: " + filename + "\n";
+  y += "      starting_time:\n        nanoseconds_since_epoch: " + start.toString() + "\n";
+  y += "      duration:\n        nanoseconds: " + dur.toString() + "\n";
+  y += "      message_count: " + totalCount + "\n";
+  return y;
+}
+
+async function handleFile(file){
+  if (!SQL){ setStatus("SQLite engine still loading — try again in a moment.", "err"); return; }
+  $("result").classList.add("hidden");
+  setStatus("Reading " + file.name + " (" + (file.size/1048576).toFixed(1) + " MB)…");
+  let db;
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    db = new SQL.Database(buf);
+    // sanity: this must look like a rosbag2 sqlite db
+    db.exec("SELECT 1 FROM topics LIMIT 1");
+  } catch (e) {
+    setStatus("Couldn't open this as a rosbag2 .db3 — it may be corrupt or not a bag. Use the CLI with --force-recover.", "err");
+    return;
+  }
+  try {
+    const cols = db.exec("PRAGMA table_info(topics)")[0].values.map(r => r[1]);
+    const hasQos = cols.includes("offered_qos_profiles");
+    const sel = "SELECT id, name, type, serialization_format" + (hasQos ? ", offered_qos_profiles" : "") + " FROM topics";
+    const trows = db.exec(sel)[0];
+    const topicsById = {};
+    for (const r of trows.values){
+      topicsById[r[0]] = { name:r[1], type:r[2], fmt:r[3], qos: hasQos ? (r[4]||"") : "", count:0 };
+    }
+    // counts + timestamps as TEXT to keep full nanosecond precision (BigInt)
+    const agg = db.exec("SELECT topic_id, COUNT(*) c, CAST(MIN(timestamp) AS TEXT) mn, CAST(MAX(timestamp) AS TEXT) mx FROM messages GROUP BY topic_id");
+    let total = 0, startNs = null, endNs = null;
+    if (agg.length){
+      for (const r of agg[0].values){
+        const id = r[0], c = r[1], mn = r[2], mx = r[3];
+        if (topicsById[id]) topicsById[id].count = c;
+        total += c;
+        if (mn !== null){ const v = BigInt(mn); startNs = (startNs===null||v<startNs)? v : startNs; }
+        if (mx !== null){ const v = BigInt(mx); endNs = (endNs===null||v>endNs)? v : endNs; }
+      }
+    }
+    const topics = Object.values(topicsById);
+    const yaml = buildYaml(file.name, topics, total, startNs, endNs);
+    db.close();
+    renderResult(topics, total, startNs, endNs, yaml);
+    setStatus("Repaired — " + total + " messages across " + topics.length + " topics. Download the metadata.yaml below.", "ok");
+  } catch (e){
+    setStatus("Failed while reading the database: " + e.message, "err");
+  }
+}
+
+function renderResult(topics, total, startNs, endNs, yaml){
+  $("s-msgs").textContent = total.toLocaleString();
+  $("s-topics").textContent = topics.length;
+  const durSec = (startNs !== null && endNs !== null) ? Number(endNs - startNs) / 1e9 : 0;
+  $("s-dur").textContent = durSec.toFixed(1) + "s";
+  const tb = $("topics-tbl").querySelector("tbody");
+  tb.innerHTML = "";
+  topics.slice().sort((a,b)=>b.count-a.count).forEach(t => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+t.name+"</td><td>"+t.type+"</td><td class='num'>"+t.count.toLocaleString()+"</td>";
+    tb.appendChild(tr);
+  });
+  $("yaml").textContent = yaml;
+  const blob = new Blob([yaml], { type:"text/yaml" });
+  $("download").href = URL.createObjectURL(blob);
+  $("result").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
